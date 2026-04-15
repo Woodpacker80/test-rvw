@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rad van Woorden 3D</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;}
+#c{display:block;width:100%;height:100%;cursor:pointer;}
+
+/* ── FONTS ── */
+@import url('https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Oswald:wght@300;400;600;700&display=swap');
+
+:root{
+  --gold:#f5c518;--gold2:#c97d00;--gold3:#fff8d0;
+  --red:#e63946;--green:#06d6a0;--blue:#4895ef;
+  --bg:rgba(0,0,0,0.72);--border:rgba(245,197,24,0.25);
+  --text:#f0ead6;--muted:#8887a0;
+}
+
+/* ── TITLE SCREEN ── */
+#title-screen{
+  position:fixed;inset:0;z-index:50;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.35);
+  backdrop-filter:blur(1px);
+  transition:opacity 0.8s;
+  opacity:0;pointer-events:none;
+}
+#title-screen.hidden{opacity:0;pointer-events:none;}
+.title-card{
+  background:linear-gradient(135deg,rgba(10,6,28,0.42),rgba(6,4,18,0.48));
+  border:1px solid rgba(245,197,24,0.3);border-radius:20px;
+  padding:28px 32px;width:420px;max-width:92vw;
+  box-shadow:0 0 80px rgba(245,197,24,0.1),inset 0 1px 0 rgba(255,255,255,0.06);
+  text-align:center;font-family:'Oswald',sans-serif;
+  backdrop-filter:blur(8px);
+}
+.title-logo{font-family:'Alfa Slab One',serif;line-height:1;margin-bottom:4px;}
+.tl-of{font-size:13px;letter-spacing:5px;background:linear-gradient(180deg,var(--gold3),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.tl-main{font-size:42px;background:linear-gradient(180deg,var(--gold3),var(--gold) 50%,var(--gold2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.tl-3d{font-size:20px;background:linear-gradient(180deg,#fff,#aaa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-left:6px;}
+.title-divider{width:60px;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:10px auto 16px;}
+.field-label{font-size:10px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;}
+.name-input{width:100%;padding:9px 14px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:1px;text-align:center;outline:none;transition:border-color 0.2s;margin-bottom:14px;}
+.name-input:focus{border-color:var(--gold);}
+.name-input::placeholder{color:var(--muted);font-size:13px;}
+.opt-row{display:flex;justify-content:center;gap:8px;margin-bottom:14px;}
+.opt-btn{padding:6px 16px;border-radius:20px;border:1px solid rgba(255,255,255,0.25);cursor:pointer;font-size:13px;font-family:'Oswald',sans-serif;letter-spacing:1px;color:rgba(255,255,255,0.75);background:rgba(255,255,255,0.08);transition:all 0.2s;user-select:none;}
+.opt-btn:hover{border-color:rgba(255,255,255,0.5);color:#fff;background:rgba(255,255,255,0.14);}
+.opt-btn.sel{background:var(--gold);color:#0a0610;border-color:var(--gold);font-weight:700;}
+.opt-btn.sel.easy{background:var(--green);border-color:var(--green);}
+.opt-btn.sel.hard{background:var(--red);border-color:var(--red);}
+.btn-start{width:100%;padding:14px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0a0610;border:none;border-radius:12px;font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;letter-spacing:3px;cursor:pointer;box-shadow:0 4px 24px rgba(245,197,24,0.3);transition:transform 0.15s,box-shadow 0.15s;}
+.btn-start:hover{transform:translateY(-1px);box-shadow:0 6px 30px rgba(245,197,24,0.4);}
+.btn-start:active{transform:scale(0.97);}
+
+/* ── HUD OVERLAY ── */
+#hud{
+  position:fixed;inset:0;z-index:20;
+  pointer-events:none;
+  display:none;
+  font-family:'Oswald',sans-serif;
+}
+#hud.show{display:block;}
+
+/* Score cards — top corners */
+.hud-score{
+  position:absolute;top:14px;
+  background:rgba(6,4,18,0.82);
+  border:1px solid var(--border);border-radius:12px;
+  padding:8px 14px;min-width:160px;
+  backdrop-filter:blur(6px);
+  transition:border-color 0.3s,box-shadow 0.3s;
+}
+.hud-score.active{border-color:var(--gold);box-shadow:0 0 20px rgba(245,197,24,0.2);}
+.hud-score.active::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);border-radius:12px 12px 0 0;}
+#hud-player{left:14px;}
+#hud-computer{right:14px;text-align:right;}
+.hud-name{font-size:10px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;gap:5px;}
+#hud-computer .hud-name{justify-content:flex-end;}
+.hud-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pdot 1.2s ease-in-out infinite;display:none;}
+.active .hud-dot{display:inline-block;}
+@keyframes pdot{0%,100%{transform:scale(1)}50%{transform:scale(1.5)}}
+.hud-round-score{font-family:'Alfa Slab One',serif;font-size:22px;color:var(--gold);line-height:1.1;}
+.hud-total{font-size:10px;color:var(--muted);letter-spacing:1px;}
+
+/* Round / category — top centre */
+#hud-centre{
+  position:absolute;top:14px;left:50%;transform:translateX(-50%);
+  text-align:center;pointer-events:none;
+}
+.hud-round-pill{
+  background:rgba(6,4,18,0.82);border:1px solid var(--border);
+  border-radius:20px;padding:5px 16px;font-size:11px;
+  letter-spacing:2px;color:var(--gold);text-transform:uppercase;
+  backdrop-filter:blur(6px);display:inline-block;margin-bottom:5px;
+}
+.hud-category{
+  background:rgba(6,4,18,0.7);border-radius:8px;
+  padding:3px 12px;font-size:10px;letter-spacing:3px;
+  color:var(--gold2);text-transform:uppercase;opacity:0.85;
+}
+
+/* Spin result banner — bottom centre */
+#hud-banner{
+  position:absolute;bottom:180px;left:50%;transform:translateX(-50%);
+  padding:8px 22px;border-radius:20px;font-size:13px;font-weight:700;
+  letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap;
+  transition:all 0.3s;opacity:0;pointer-events:none;
+}
+#hud-banner.show{opacity:1;}
+#hud-banner.money{color:var(--gold);background:rgba(245,197,24,0.12);border:1px solid rgba(245,197,24,0.3);}
+#hud-banner.bad{color:var(--red);background:rgba(230,57,70,0.12);border:1px solid rgba(230,57,70,0.3);animation:shakeX 0.4s;}
+#hud-banner.neutral{color:var(--muted);background:rgba(136,135,160,0.1);border:1px solid rgba(136,135,160,0.2);}
+#hud-banner.sudden{color:#ff4d4d;background:rgba(230,57,70,0.15);border:1px solid rgba(230,57,70,0.5);animation:sdpulse 1s ease-in-out infinite;}
+@keyframes shakeX{0%,100%{transform:translateX(-50%)}25%,75%{transform:translateX(calc(-50% - 6px))}50%{transform:translateX(calc(-50% + 6px))}}
+@keyframes sdpulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* Think bar */
+#hud-think{
+  position:absolute;bottom:155px;left:50%;transform:translateX(-50%);
+  display:none;align-items:center;gap:6px;
+  font-size:11px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;
+}
+#hud-think.show{display:flex;}
+.tdot{width:5px;height:5px;border-radius:50%;background:var(--gold);animation:tb 1.2s ease-in-out infinite;}
+.tdot:nth-child(2){animation-delay:0.2s}.tdot:nth-child(3){animation-delay:0.4s}
+@keyframes tb{0%,100%{transform:translateY(0);opacity:0.4}50%{transform:translateY(-5px);opacity:1}}
+
+/* ── ACTION BUTTONS — bottom centre ── */
+#action-bar{
+  position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+  display:none;gap:10px;z-index:25;pointer-events:all;
+}
+#action-bar.show{display:flex;}
+.act-btn{
+  padding:10px 20px;border:none;border-radius:10px;
+  font-family:'Oswald',sans-serif;font-size:13px;font-weight:700;
+  letter-spacing:1px;text-transform:uppercase;cursor:pointer;
+  transition:transform 0.12s,opacity 0.2s;
+  backdrop-filter:blur(4px);
+}
+.act-btn:active{transform:scale(0.94);}
+.act-btn:disabled{opacity:0.25;cursor:default;transform:none;}
+#btn-spin{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0a0610;}
+#btn-vowel{background:rgba(20,60,120,0.9);color:#fff;border:1px solid rgba(72,149,239,0.4);}
+#btn-solve{background:rgba(10,60,30,0.9);color:#fff;border:1px solid rgba(6,214,160,0.4);}
+
+/* ── KEYBOARD ── */
+#keyboard-wrap{
+  position:fixed;bottom:10px;left:50%;transform:translateX(-50%);
+  display:none;flex-direction:column;gap:5px;z-index:25;pointer-events:all;
+}
+#keyboard-wrap.show{display:flex;}
+.kb-row{display:flex;justify-content:center;gap:4px;}
+.kb-key{
+  width:38px;height:36px;border-radius:7px;
+  border:1px solid rgba(255,255,255,0.08);
+  background:rgba(15,12,35,0.88);color:var(--text);
+  font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;
+  cursor:pointer;transition:all 0.12s;backdrop-filter:blur(4px);
+}
+.kb-key:active{transform:scale(0.88);}
+.kb-key.used-hit{background:rgba(6,60,20,0.88);color:#2a7a2a;border-color:rgba(6,214,160,0.2);}
+.kb-key.used-miss{background:rgba(15,15,15,0.88);color:#333;border-color:transparent;}
+.kb-key:disabled{opacity:0.22;cursor:default;}
+.kb-flash{animation:kbfl 0.25s ease-out;}
+@keyframes kbfl{0%{transform:scale(1.3);background:var(--gold);color:#0a0610;}100%{transform:scale(1);}}
+
+/* ── MODALS ── */
+.modal-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,0.75);z-index:100;
+  align-items:center;justify-content:center;
+  backdrop-filter:blur(5px);
+}
+.modal-overlay.open{display:flex;}
+.modal-box{
+  background:linear-gradient(135deg,rgba(12,8,30,0.98),rgba(8,6,20,0.98));
+  border:1px solid var(--border);border-radius:18px;
+  padding:26px 22px;text-align:center;width:88%;max-width:360px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.7);font-family:'Oswald',sans-serif;
+}
+.modal-icon{font-size:42px;margin-bottom:8px;}
+.modal-title{font-family:'Alfa Slab One',serif;font-size:24px;background:linear-gradient(135deg,var(--gold3),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px;}
+.modal-sub{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:14px;}
+.modal-answer{font-family:'Alfa Slab One',serif;font-size:15px;color:var(--gold);background:rgba(245,197,24,0.08);border:1px solid rgba(245,197,24,0.2);border-radius:8px;padding:8px 12px;margin-bottom:14px;letter-spacing:2px;word-break:break-word;}
+.modal-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0a0610;border:none;border-radius:10px;font-family:'Oswald',sans-serif;font-size:17px;font-weight:700;letter-spacing:2px;cursor:pointer;margin-bottom:6px;transition:transform 0.12s;}
+.modal-btn:active{transform:scale(0.97);}
+.modal-btn.sec{background:rgba(20,16,40,0.9);color:var(--muted);border:1px solid var(--border);}
+.solve-input{width:100%;padding:10px 14px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Oswald',sans-serif;font-size:18px;letter-spacing:2px;text-align:center;outline:none;text-transform:uppercase;margin-bottom:12px;}
+.solve-input:focus{border-color:var(--gold);}
+.go-scores{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0;}
+.go-card{background:rgba(15,12,35,0.8);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px;}
+.go-card.winner{border-color:var(--gold);box-shadow:0 0 20px rgba(245,197,24,0.2);}
+.go-name{font-size:10px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;}
+.go-score{font-family:'Alfa Slab One',serif;font-size:24px;color:var(--gold);}
+
+/* Screen flash */
+.screen-flash{position:fixed;inset:0;pointer-events:none;z-index:200;opacity:0;}
+
+/* ── MOVIE CREDITS ── */
+#credits-overlay{
+  position:fixed;inset:0;z-index:150;pointer-events:none;
+  background:transparent;overflow:hidden;
+}
+#credits-scroll{
+  position:absolute;left:50%;transform:translateX(-50%);
+  width:420px;max-width:90vw;text-align:center;
+  font-family:'Oswald',sans-serif;
+  display:flex;flex-direction:column;align-items:center;gap:28px;
+  top:100%;
+}
+#credits-overlay.rolling #credits-scroll{
+  animation:creditsRoll var(--roll-duration,12s) linear forwards;
+}
+@keyframes creditsRoll{
+  from{top:100%;}
+  to{top:-120%;}
+}
+.cr-block{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.cr-role{
+  font-size:12px;letter-spacing:3px;color:rgba(200,190,160,0.7);
+  text-transform:uppercase;
+}
+.cr-name{
+  font-size:22px;font-weight:700;letter-spacing:2px;
+  background:linear-gradient(180deg,#fff8d0,#f5c518);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+  filter:drop-shadow(0 0 8px rgba(245,197,24,0.6));
+}
+.cr-divider{
+  width:50px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(245,197,24,0.4),transparent);
+}
+.cr-title{
+  font-size:14px;letter-spacing:4px;color:rgba(245,197,24,0.6);
+  text-transform:uppercase;margin-bottom:8px;
+}
+
+/* ── FINAL MESSAGE ── */
+#credits-final{
+  position:fixed;inset:0;z-index:151;pointer-events:none;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity 1.8s ease;
+}
+#credits-final.visible{opacity:1;}
+.credits-final-text{
+  font-family:'Oswald',sans-serif;font-size:clamp(18px,3.5vw,32px);
+  font-weight:300;letter-spacing:4px;
+  color:#f0ead6;
+  text-shadow:0 0 40px rgba(245,197,24,0.3);
+  text-align:center;
+}
+@keyframes flashR{0%{background:rgba(230,57,70,0.35);opacity:1}100%{opacity:0}}
+@keyframes flashG{0%{background:rgba(245,197,24,0.22);opacity:1}100%{opacity:0}}
+.flash-red{animation:flashR 0.4s ease-out forwards;}
+.flash-gold{animation:flashG 0.4s ease-out forwards;}
+
+/* Confetti */
+.confetti-piece{position:fixed;top:-10px;z-index:999;animation:cfall linear forwards;pointer-events:none;}
+@keyframes cfall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(105vh) rotate(720deg);opacity:0}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="title-screen">
+  <div class="title-card">
+    <div class="title-logo">
+      <div class="tl-of">Rad van</div>
+      <div style="display:flex;align-items:baseline;justify-content:center;gap:4px;">
+        <span class="tl-main">Woorden</span><span class="tl-3d">3D</span>
+      </div>
+    </div>
+    <div class="title-divider"></div>
+    <div class="field-label">Jouw naam</div>
+    <input class="name-input" id="player-name" type="text" maxlength="16" placeholder="Voer je naam in" autocomplete="off" spellcheck="false">
+    <div class="field-label">Rondes</div>
+    <div class="opt-row" id="rounds-opts">
+      <button class="opt-btn" data-val="3">3</button>
+      <button class="opt-btn sel" data-val="5">5</button>
+      <button class="opt-btn" data-val="7">7</button>
+    </div>
+    <div class="field-label">Moeilijkheidsgraad</div>
+    <div class="opt-row" id="diff-opts">
+      <button class="opt-btn easy" data-val="easy">Easy</button>
+      <button class="opt-btn sel medium" data-val="medium">Medium</button>
+      <button class="opt-btn hard" data-val="hard">Hard</button>
+    </div>
+    <button class="btn-start" onclick="startGame()">▶ SPELEN</button>
+  </div>
+</div>
+
+<div id="hud">
+  <div class="hud-score active" id="hud-player">
+    <div class="hud-name"><span class="hud-dot"></span><span id="hud-pname">Speler</span></div>
+    <div class="hud-round-score" id="hud-pround">€0</div>
+    <div class="hud-total" id="hud-ptotal">TOTAAL €0</div>
+  </div>
+  <div id="hud-centre">
+    <div class="hud-round-pill" id="hud-round-pill">Ronde 1</div>
+    <div class="hud-category" id="hud-category">Categorie</div>
+  </div>
+  <div class="hud-score" id="hud-computer">
+    <div class="hud-name"><span class="hud-dot"></span>Computer</div>
+    <div class="hud-round-score" id="hud-cround">€0</div>
+    <div class="hud-total" id="hud-ctotal">TOTAAL €0</div>
+  </div>
+  <div id="hud-banner"></div>
+  <div id="hud-think"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div><span>Computer denkt...</span></div>
+</div>
+
+<div id="action-bar">
+  <button class="act-btn" id="btn-spin" onclick="handleSpin()">DRAAIEN</button>
+  <button class="act-btn" id="btn-vowel" onclick="handleBuyVowel()">KLINKER <span id="vowel-cost">€250</span></button>
+  <button class="act-btn" id="btn-solve" onclick="openSolve()">OPLOSSEN</button>
+</div>
+
+<div id="keyboard-wrap">
+  <div class="kb-row" id="kb-row-1"></div>
+  <div class="kb-row" id="kb-row-2"></div>
+  <div class="kb-row" id="kb-row-3"></div>
+</div>
+
+<div class="modal-overlay" id="modal-result">
+  <div class="modal-box">
+    <div class="modal-icon" id="res-icon">🎉</div>
+    <div class="modal-title" id="res-title">Goed zo!</div>
+    <div class="modal-sub" id="res-sub"></div>
+    <div class="modal-answer" id="res-answer" style="display:none"></div>
+    <button class="modal-btn" onclick="continueResult()">DOORGAAN</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-round">
+  <div class="modal-box">
+    <div class="modal-icon" id="rnd-icon">🥈</div>
+    <div class="modal-title" id="rnd-title">Zilveren Ronde!</div>
+    <div class="modal-sub" id="rnd-sub"></div>
+    <button class="modal-btn" onclick="continueRound()">SPELEN!</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-solve">
+  <div class="modal-box">
+    <div class="modal-title">Oplossen</div>
+    <div class="modal-sub">Wat is de oplossing?</div>
+    <input class="solve-input" id="solve-input" type="text" placeholder="TYPE HIER..." autocomplete="off" spellcheck="false">
+    <button class="modal-btn" onclick="submitSolve()">OPLOSSEN</button>
+    <button class="modal-btn sec" onclick="closeSolve()">ANNULEREN</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-go">
+  <div class="modal-box">
+    <div class="modal-icon" id="go-icon">🏆</div>
+    <div class="modal-title" id="go-title">Gewonnen!</div>
+    <div class="modal-sub" id="go-sub"></div>
+    <div class="go-scores">
+      <div class="go-card" id="go-pcard">
+        <div class="go-name" id="go-pname">Speler</div>
+        <div class="go-score" id="go-pscore">€0</div>
+      </div>
+      <div class="go-card" id="go-ccard">
+        <div class="go-name">Computer</div>
+        <div class="go-score" id="go-cscore">€0</div>
+      </div>
+    </div>
+    <button class="modal-btn" onclick="playAgain()">OPNIEUW</button>
+    <button class="modal-btn sec" onclick="goTitle()">HOOFDMENU</button>
+  </div>
+</div>
+
+<div class="screen-flash" id="screen-flash"></div>
+
+<div id="credits-overlay">
+  <div id="credits-scroll">
+    <div class="cr-title">Een Spel Van</div>
+    <div class="cr-block">
+      <div class="cr-role">Game Designer &amp; Producer</div>
+      <div class="cr-name">M.H. Oddens</div>
+    </div>
+    <div class="cr-divider"></div>
+    <div class="cr-block">
+      <div class="cr-role">Programmeur &amp; Co-Designer</div>
+      <div class="cr-name">Claude AI · Anthropic</div>
+    </div>
+    <div class="cr-divider"></div>
+    <div class="cr-block">
+      <div class="cr-role">Technisch Analist &amp; Reviewer</div>
+      <div class="cr-name">Gemini AI · Google</div>
+    </div>
+  </div>
+</div>
+
+<div id="credits-final">
+  <div class="credits-final-text">Bedankt voor het spelen van ons spel</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════
+//  RENDERER + SCENE + CAMERA
+// ═══════════════════════════════════════════════════════
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+
+const scene = new THREE.Scene();
+
+// Atmospheric haze — subtle fog that makes light beams visible
+scene.fog = new THREE.FogExp2(0x0a0810, 0.038);
+
+// Camera — poker table position: low, looki
